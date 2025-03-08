@@ -1,5 +1,9 @@
 #pragma once
 
+inline const unsigned char Rcon[11] = {
+    0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
+};
+
 inline const unsigned char SBox[16][16] = {
     {
         0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b,
@@ -149,6 +153,17 @@ class AES {
         return a;
     }
 
+    static unsigned char* SubWord(unsigned char* word) {
+        for (int i = 0; i < 4; i++) {
+            word[i] = SBox[word[i] >> 4][word[i] & 0x0F];
+        }
+        return word;
+    }
+
+    static unsigned char* RotWord(const unsigned char* word) {
+        return new unsigned char[4]{word[1], word[2], word[3], word[0]};
+    }
+
 public:
     explicit AES(const int keySize) {
         switch (keySize) {
@@ -164,6 +179,26 @@ public:
             Nk = 8;
             Nr = 14;
             break;
+        }
+    }
+
+    void KeyExpansion(const unsigned char* key, unsigned char* roundKeys) {
+        int i = 0;
+        while (i < Nk * 4) {
+            roundKeys[i] = key[i];
+            i++;
+        }
+        while (i <= 4 * (Nr + 3)) {
+            unsigned char* temp = &roundKeys[i - 1];
+            if (i % Nk == 0) {
+                temp = SubWord(RotWord(temp));
+                temp[0] ^= Rcon[i / Nk];
+            }
+            else if (Nk > 6 && i % Nk == 4) {
+                temp = SubWord(temp);
+            }
+            roundKeys[i] = roundKeys[i - Nk] ^ temp;
+            i++;
         }
     }
 
