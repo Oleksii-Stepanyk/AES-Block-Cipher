@@ -210,10 +210,25 @@ public:
         return newState;
     }
 
+    unsigned char* SubBytes(const unsigned char* state) {
+        auto* newState = new unsigned char[16];
+        for (int i = 0; i < 16; i++) {
+            newState[i] = InvSBox[state[i] >> 4][state[i] & 0x0F];
+        }
+        return newState;
+    }
+
     unsigned char* ShiftRows(const unsigned char* state) {
         return new unsigned char[16]{
             state[0], state[5], state[10], state[15], state[4], state[9], state[14], state[3], state[8], state[13],
             state[2], state[7], state[12], state[1], state[6], state[11]
+        };
+    }
+
+    unsigned char* InvShiftRows(const unsigned char* state) {
+        return new unsigned char[16]{
+            state[0], state[13], state[10], state[7], state[4], state[1], state[14], state[11], state[8], state[5],
+            state[2], state[15], state[12], state[9], state[6], state[3]
         };
     }
 
