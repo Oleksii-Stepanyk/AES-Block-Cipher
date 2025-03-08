@@ -164,45 +164,7 @@ class AES {
         return new unsigned char[4]{word[1], word[2], word[3], word[0]};
     }
 
-public:
-    explicit AES(const int keySize) {
-        switch (keySize) {
-        case 16:
-            Nk = 4;
-            Nr = 10;
-            break;
-        case 24:
-            Nk = 6;
-            Nr = 12;
-            break;
-        case 32:
-            Nk = 8;
-            Nr = 14;
-            break;
-        }
-    }
-
-    void KeyExpansion(const unsigned char* key, unsigned char* roundKeys) {
-        int i = 0;
-        while (i < Nk * 4) {
-            roundKeys[i] = key[i];
-            i++;
-        }
-        while (i <= 4 * (Nr + 3)) {
-            unsigned char* temp = &roundKeys[i - 1];
-            if (i % Nk == 0) {
-                temp = SubWord(RotWord(temp));
-                temp[0] ^= Rcon[i / Nk];
-            }
-            else if (Nk > 6 && i % Nk == 4) {
-                temp = SubWord(temp);
-            }
-            roundKeys[i] = roundKeys[i - Nk] ^ temp;
-            i++;
-        }
-    }
-
-    unsigned char* SubBytes(const unsigned char* state) {
+        unsigned char* SubBytes(const unsigned char* state) {
         auto* newState = new unsigned char[16];
         for (int i = 0; i < 16; i++) {
             newState[i] = SBox[state[i] >> 4][state[i] & 0x0F];
@@ -210,7 +172,7 @@ public:
         return newState;
     }
 
-    unsigned char* SubBytes(const unsigned char* state) {
+    unsigned char* InvSubBytes(const unsigned char* state) {
         auto* newState = new unsigned char[16];
         for (int i = 0; i < 16; i++) {
             newState[i] = InvSBox[state[i] >> 4][state[i] & 0x0F];
@@ -253,5 +215,43 @@ public:
             newState[i] = static_cast<unsigned char>(state[i] ^ roundKey[i]);
         }
         return newState;
+    }
+
+public:
+    explicit AES(const int keySize) {
+        switch (keySize) {
+        case 16:
+            Nk = 4;
+            Nr = 10;
+            break;
+        case 24:
+            Nk = 6;
+            Nr = 12;
+            break;
+        case 32:
+            Nk = 8;
+            Nr = 14;
+            break;
+        }
+    }
+
+    void KeyExpansion(const unsigned char* key, unsigned char* roundKeys) {
+        int i = 0;
+        while (i < Nk * 4) {
+            roundKeys[i] = key[i];
+            i++;
+        }
+        while (i <= 4 * (Nr + 3)) {
+            unsigned char* temp = &roundKeys[i - 1];
+            if (i % Nk == 0) {
+                temp = SubWord(RotWord(temp));
+                temp[0] ^= Rcon[i / Nk];
+            }
+            else if (Nk > 6 && i % Nk == 4) {
+                temp = SubWord(temp);
+            }
+            roundKeys[i] = roundKeys[i - Nk] ^ temp;
+            i++;
+        }
     }
 };
