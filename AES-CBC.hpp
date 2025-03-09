@@ -30,7 +30,7 @@ public:
 
     const unsigned char* Decrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv, const int inputSize) {
         const auto result = new unsigned char[inputSize];
-        unsigned char* xorData = new unsigned char[16];
+        auto* xorData = new unsigned char[16];
         const int blocks = inputSize / 16;
 
         memcpy(xorData, iv, 16);
