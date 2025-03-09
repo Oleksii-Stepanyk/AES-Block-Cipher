@@ -10,8 +10,7 @@ public:
 
     ~AES_ECB() override = default;
 
-    const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key) {
-        const int inputSize = strlen(reinterpret_cast<const char*>(input));
+    const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const int inputSize) {
         const auto result = new unsigned char[inputSize];
         const int blocks = inputSize / 16;
         for (int i = 0; i < blocks; i++) {
@@ -22,8 +21,7 @@ public:
         return result;
     }
 
-    const unsigned char* Decrypt(const unsigned char* input, const unsigned char* key) {
-        const int inputSize = strlen(reinterpret_cast<const char*>(input));
+    const unsigned char* Decrypt(const unsigned char* input, const unsigned char* key, const int inputSize) {
         const auto result = new unsigned char[inputSize];
         const int blocks = inputSize / 16;
         for (int i = 0; i < blocks; i++) {

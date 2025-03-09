@@ -11,9 +11,7 @@ public:
 
     ~AES_CBC() override = default;
 
-    const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv) {
-        const int inputSize = strlen(reinterpret_cast<const char*>(input));
-
+    const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv, const int inputSize) {
         const auto result = new unsigned char[inputSize];
         auto* xorData = new unsigned char[16];
         const int blocks = inputSize / 16;
@@ -27,14 +25,10 @@ public:
             delete[] xoredBlock;
             delete[] encryptedBlock;
         }
-
-        delete[] xorData;
         return result;
     }
 
-    const unsigned char* Decrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv) {
-        const int inputSize = strlen(reinterpret_cast<const char*>(input));
-
+    const unsigned char* Decrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv, const int inputSize) {
         const auto result = new unsigned char[inputSize];
         unsigned char* xorData = new unsigned char[16];
         const int blocks = inputSize / 16;
@@ -48,7 +42,6 @@ public:
             delete[] decryptedBlock;
             delete[] xoredBlock;
         }
-        delete[] xorData;
         return result;
     }
 };

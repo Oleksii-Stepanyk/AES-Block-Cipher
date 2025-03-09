@@ -208,7 +208,7 @@ protected:
 
     unsigned char* XorBlocks(const unsigned char* a, const unsigned char* b) {
         const auto result = new unsigned char[16];
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 16; i++) {
             result[i] = a[i] ^ b[i];
         }
         return result;
