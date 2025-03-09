@@ -37,7 +37,7 @@ public:
 
         const auto result = new unsigned char[inputSize];
         unsigned char* xorData = new unsigned char[16];
-        int blocks = inputSize / 16;
+        const int blocks = inputSize / 16;
 
         memcpy(xorData, iv, 16);
         for (int i = 0; i < blocks; ++i) {

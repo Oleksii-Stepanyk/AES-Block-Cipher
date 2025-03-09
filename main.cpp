@@ -29,7 +29,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    const unsigned char* cipher_cbc = cbc.Decrypt(input, key, iv);
+    const unsigned char* cipher_cbc = cbc.Encrypt(input, key, iv);
     for (int i = 0; i < 16; i++) {
         std::cout << std::hex << static_cast<int>(cipher_cbc[i]) << " ";
     }
@@ -41,7 +41,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    const unsigned char* cipher_cfb = cfb.Decrypt(input, key, iv);
+    const unsigned char* cipher_cfb = cfb.Encrypt(input, key, iv);
     for (int i = 0; i < 16; i++) {
         std::cout << std::hex << static_cast<int>(cipher_cfb[i]) << " ";
     }
