@@ -164,7 +164,7 @@ class AES {
         return new unsigned char[4]{word[1], word[2], word[3], word[0]};
     }
 
-        unsigned char* SubBytes(const unsigned char* state) {
+    unsigned char* SubBytes(const unsigned char* state) {
         auto* newState = new unsigned char[16];
         for (int i = 0; i < 16; i++) {
             newState[i] = SBox[state[i] >> 4][state[i] & 0x0F];
@@ -250,8 +250,12 @@ public:
             else if (Nk > 6 && i % Nk == 4) {
                 temp = SubWord(temp);
             }
-            roundKeys[i] = roundKeys[i - Nk] ^ temp;
+            roundKeys[i] = roundKeys[i - Nk] ^ *temp;
             i++;
         }
+    }
+
+    unsigned char* Encrypt(const unsigned char* input, const unsigned char* key) {
+        // WIP
     }
 };
