@@ -217,24 +217,6 @@ class AES {
         return newState;
     }
 
-public:
-    explicit AES(const int keySize) {
-        switch (keySize) {
-        case 16:
-            Nk = 4;
-            Nr = 10;
-            break;
-        case 24:
-            Nk = 6;
-            Nr = 12;
-            break;
-        case 32:
-            Nk = 8;
-            Nr = 14;
-            break;
-        }
-    }
-
     void KeyExpansion(const unsigned char* key, unsigned char* roundKeys) {
         int i = 0;
         while (i < Nk * 4) {
@@ -252,6 +234,24 @@ public:
             }
             roundKeys[i] = roundKeys[i - Nk] ^ *temp;
             i++;
+        }
+    }
+
+public:
+    explicit AES(const int keySize) {
+        switch (keySize) {
+        case 16:
+            Nk = 4;
+            Nr = 10;
+            break;
+        case 24:
+            Nk = 6;
+            Nr = 12;
+            break;
+        case 32:
+            Nk = 8;
+            Nr = 14;
+            break;
         }
     }
 
