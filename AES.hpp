@@ -89,14 +89,29 @@ class AES {
         if (b == 0x03) {
             return static_cast<unsigned char>(a << 1 ^ (a & 0x80 ? 0x1B : 0) ^ a);
         }
-        return a;
+        if (b == 0x04) {
+            return xState(xState(a, 0x02), 0x02);
+        }
+        if (b == 0x08) {
+            return xState(xState(a, 0x04), 0x02);
+        }
+        if (b == 0x09) {
+            return static_cast<unsigned char>(xState(a, 0x08) ^ a);
+        }
+        if (b == 0x0b) {
+            return static_cast<unsigned char>(xState(a, 0x09) ^ xState(a, 0x02));
+        }
+        if (b == 0x0d) {
+            return static_cast<unsigned char>(xState(a, 0x09) ^ xState(a, 0x04));
+        }
+        if (b == 0x0e) {
+            return static_cast<unsigned char>(xState(a, 0x08) ^ xState(a, 0x04) ^ xState(a, 0x02));
+        }
     }
 
-
     void SubWord(unsigned char* word) {
-        const auto temp = word;
         for (int i = 0; i < 4; i++) {
-            word[i] = SBox[temp[i]];
+            word[i] = SBox[word[i]];
         }
     }
 
@@ -114,12 +129,10 @@ class AES {
         }
     }
 
-    unsigned char* InvSubBytes(const unsigned char* state) {
-        auto* newState = new unsigned char[16];
+    void InvSubBytes(unsigned char* state) {
         for (int i = 0; i < 16; i++) {
-            newState[i] = InvSBox[state[i]];
+            state[i] = InvSBox[state[i]];
         }
-        return newState;
     }
 
     void ShiftRows(unsigned char* state) {
@@ -133,11 +146,15 @@ class AES {
         delete[] temp;
     }
 
-    unsigned char* InvShiftRows(const unsigned char* state) {
-        return new unsigned char[16]{
-            state[0], state[13], state[10], state[7], state[4], state[1], state[14], state[11], state[8], state[5],
-            state[2], state[15], state[12], state[9], state[6], state[3]
-        };
+    void InvShiftRows(unsigned char* state) {
+        auto* temp = new unsigned char[16];
+        memcpy(temp, state, 16);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                state[i + j * 4] = temp[i + (4 + j - i) % 4 * 4];
+            }
+        }
+        delete[] temp;
     }
 
     void MixColumns(unsigned char* state) {
@@ -152,6 +169,22 @@ class AES {
                 ^ xState(temp[2 + 4 * i], 0x02) ^ xState(temp[3 + 4 * i], 0x03));
             state[3 + 4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x03) ^ temp[1 + 4 * i]
                 ^ temp[2 + 4 * i] ^ xState(temp[3 + 4 * i], 0x02));
+        }
+        delete[] temp;
+    }
+
+    void InvMixColumns(unsigned char* state) {
+        auto* temp = new unsigned char[16];
+        memcpy(temp, state, 16);
+        for (int i = 0; i < 4; i++) {
+            state[4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x0e) ^ xState(temp[1 + 4 * i], 0x0b)
+                ^ xState(temp[2 + 4 * i], 0x0d) ^ xState(temp[3 + 4 * i], 0x09));
+            state[1 + 4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x09) ^ xState(temp[1 + 4 * i], 0x0e)
+                ^ xState(temp[2 + 4 * i], 0x0b) ^ xState(temp[3 + 4 * i], 0x0d));
+            state[2 + 4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x0d) ^ xState(temp[1 + 4 * i], 0x09)
+                ^ xState(temp[2 + 4 * i], 0x0e) ^ xState(temp[3 + 4 * i], 0x0b));
+            state[3 + 4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x0b) ^ xState(temp[1 + 4 * i], 0x0d)
+                ^ xState(temp[2 + 4 * i], 0x09) ^ xState(temp[3 + 4 * i], 0x0e));
         }
         delete[] temp;
     }
@@ -254,6 +287,23 @@ public:
         SubBytes(state);
         ShiftRows(state);
         AddRoundKey(state, roundKeys[Nr]);
+        return state;
+    }
+
+    unsigned char* Decrypt(const unsigned char input[], const unsigned char key[]) {
+        const auto state = new unsigned char[16];
+        const auto roundKeys = KeyExpansion(key);
+        memcpy(state, input, 16);
+        AddRoundKey(state, roundKeys[Nr]);
+        for (int round = Nr - 1; round > 0; round--) {
+            InvShiftRows(state);
+            InvSubBytes(state);
+            AddRoundKey(state, roundKeys[round]);
+            InvMixColumns(state);
+        }
+        InvShiftRows(state);
+        InvSubBytes(state);
+        AddRoundKey(state, roundKeys[0]);
         return state;
     }
 };
