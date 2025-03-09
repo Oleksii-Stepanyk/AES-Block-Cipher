@@ -313,11 +313,22 @@ public:
     }
 
     unsigned char* GenerateIV() {
-        std::mt19937 gen(std::random_device{}());
+        std::mt19937 gen(0);
         auto* iv = new unsigned char[16];
         for (int i = 0; i < 16; i++) {
+            gen.seed(std::random_device{}());
             iv[i] = static_cast<unsigned char>(gen() % 256);
         }
         return iv;
+    }
+
+    unsigned char* GenerateKey() {
+        std::mt19937 gen(0);
+        auto* key = new unsigned char[keySize];
+        for (int i = 0; i < 16; i++) {
+            gen.seed(std::random_device{}());
+            key[i] = static_cast<unsigned char>(gen() % 256);
+        }
+        return key;
     }
 };
