@@ -1,4 +1,5 @@
 #pragma once
+#include <random>
 #include <vector>
 
 inline const unsigned char Rcon[10] = {
@@ -77,6 +78,7 @@ inline const unsigned char InvSBox[256] = {
 };
 
 class AES {
+protected:
     static constexpr int Nb = 4;
     int Nk;
     int Nr;
@@ -107,6 +109,7 @@ class AES {
         if (b == 0x0e) {
             return static_cast<unsigned char>(xState(a, 0x08) ^ xState(a, 0x04) ^ xState(a, 0x02));
         }
+        return a;
     }
 
     void SubWord(unsigned char* word) {
@@ -203,6 +206,14 @@ class AES {
         return result;
     }
 
+    unsigned char* XorBlocks(const unsigned char* a, const unsigned char* b) {
+        const auto result = new unsigned char[16];
+        for (int i = 0; i < 4; i++) {
+            result[i] = a[i] ^ b[i];
+        }
+        return result;
+    }
+
     std::vector<unsigned char*> KeyExpansion(const unsigned char* key) {
         int i = 0;
         std::vector<unsigned char*> roundKeys;
@@ -247,7 +258,43 @@ class AES {
         return expandedKeys;
     }
 
+    unsigned char* EncryptBlock(const unsigned char input[], const unsigned char key[]) {
+        const auto state = new unsigned char[16];
+        const auto roundKeys = KeyExpansion(key);
+        memcpy(state, input, 16);
+        AddRoundKey(state, roundKeys[0]);
+        for (int round = 1; round < Nr; round++) {
+            SubBytes(state);
+            ShiftRows(state);
+            MixColumns(state);
+            AddRoundKey(state, roundKeys[round]);
+        }
+        SubBytes(state);
+        ShiftRows(state);
+        AddRoundKey(state, roundKeys[Nr]);
+        return state;
+    }
+
+    unsigned char* DecryptBlock(const unsigned char input[], const unsigned char key[]) {
+        const auto state = new unsigned char[16];
+        const auto roundKeys = KeyExpansion(key);
+        memcpy(state, input, 16);
+        AddRoundKey(state, roundKeys[Nr]);
+        for (int round = Nr - 1; round > 0; round--) {
+            InvShiftRows(state);
+            InvSubBytes(state);
+            AddRoundKey(state, roundKeys[round]);
+            InvMixColumns(state);
+        }
+        InvShiftRows(state);
+        InvSubBytes(state);
+        AddRoundKey(state, roundKeys[0]);
+        return state;
+    }
+
 public:
+    virtual ~AES() = default;
+
     explicit AES(const int keySize): keySize(keySize) {
         switch (keySize) {
         case 16:
@@ -265,45 +312,12 @@ public:
         }
     }
 
-    // For debug purposes
-    void PrintState(const unsigned char* state) {
+    unsigned char* GenerateIV() {
+        std::mt19937 gen(std::random_device{}());
+        auto* iv = new unsigned char[16];
         for (int i = 0; i < 16; i++) {
-            std::cout << std::hex << static_cast<int>(state[i]) << " ";
+            iv[i] = static_cast<unsigned char>(gen() % 256);
         }
-        std::cout << std::endl;
-    }
-
-    unsigned char* Encrypt(const unsigned char input[], const unsigned char key[]) {
-        const auto state = new unsigned char[16];
-        const auto roundKeys = KeyExpansion(key);
-        memcpy(state, input, 16);
-        AddRoundKey(state, roundKeys[0]);
-        for (int round = 1; round < Nr; round++) {
-            SubBytes(state);
-            ShiftRows(state);
-            MixColumns(state);
-            AddRoundKey(state, roundKeys[round]);
-        }
-        SubBytes(state);
-        ShiftRows(state);
-        AddRoundKey(state, roundKeys[Nr]);
-        return state;
-    }
-
-    unsigned char* Decrypt(const unsigned char input[], const unsigned char key[]) {
-        const auto state = new unsigned char[16];
-        const auto roundKeys = KeyExpansion(key);
-        memcpy(state, input, 16);
-        AddRoundKey(state, roundKeys[Nr]);
-        for (int round = Nr - 1; round > 0; round--) {
-            InvShiftRows(state);
-            InvSubBytes(state);
-            AddRoundKey(state, roundKeys[round]);
-            InvMixColumns(state);
-        }
-        InvShiftRows(state);
-        InvSubBytes(state);
-        AddRoundKey(state, roundKeys[0]);
-        return state;
+        return iv;
     }
 };
