@@ -1,7 +1,9 @@
 #pragma once
+#include <string.h>
+#include <vector>
 
-inline const unsigned char Rcon[11] = {
-    0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
+inline const unsigned char Rcon[10] = {
+    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
 };
 
 inline const unsigned char SBox[16][16] = {
@@ -142,6 +144,7 @@ class AES {
     static constexpr int Nb = 4;
     int Nk;
     int Nr;
+    int keySize;
 
     static unsigned char xState(const unsigned char a, const unsigned char b) {
         if (b == 0x02) {
@@ -153,23 +156,26 @@ class AES {
         return a;
     }
 
-    static unsigned char* SubWord(unsigned char* word) {
+
+    void SubWord(unsigned char* word) {
+        const auto temp = word;
         for (int i = 0; i < 4; i++) {
-            word[i] = SBox[word[i] >> 4][word[i] & 0x0F];
+            word[i] = SBox[temp[i] >> 4][temp[i] & 0x0F];
         }
-        return word;
     }
 
-    static unsigned char* RotWord(const unsigned char* word) {
-        return new unsigned char[4]{word[1], word[2], word[3], word[0]};
+    void RotWord(unsigned char* word) {
+        const unsigned char temp = word[0];
+        for (int i = 0; i < 3; i++) {
+            word[i] = word[i + 1];
+        }
+        word[3] = temp;
     }
 
-    unsigned char* SubBytes(const unsigned char* state) {
-        auto* newState = new unsigned char[16];
+    void SubBytes(unsigned char* state) {
         for (int i = 0; i < 16; i++) {
-            newState[i] = SBox[state[i] >> 4][state[i] & 0x0F];
+            state[i] = SBox[state[i] >> 4][state[i] & 0x0F];
         }
-        return newState;
     }
 
     unsigned char* InvSubBytes(const unsigned char* state) {
@@ -180,11 +186,15 @@ class AES {
         return newState;
     }
 
-    unsigned char* ShiftRows(const unsigned char* state) {
-        return new unsigned char[16]{
-            state[0], state[5], state[10], state[15], state[4], state[9], state[14], state[3], state[8], state[13],
-            state[2], state[7], state[12], state[1], state[6], state[11]
-        };
+    void ShiftRows(unsigned char* state) {
+        auto* temp = new unsigned char[16];
+        memcpy(temp, state, 16);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                state[i + j * 4] = temp[i + (j + i) % 4 * 4];
+            }
+        }
+        delete[] temp;
     }
 
     unsigned char* InvShiftRows(const unsigned char* state) {
@@ -194,51 +204,75 @@ class AES {
         };
     }
 
-    unsigned char* MixColumns(const unsigned char* state) {
-        auto* newState = new unsigned char[16];
+    void MixColumns(unsigned char* state) {
+        auto* temp = new unsigned char[16];
+        memcpy(temp, state, 16);
         for (int i = 0; i < 4; i++) {
-            newState[4 * i] = static_cast<unsigned char>(xState(state[4 * i], 0x02)
-                ^ xState(state[1 + 4 * i], 0x03) ^ state[2 + 4 * i] ^ state[3 + 4 * i]);
-            newState[1 + 4 * i] = static_cast<unsigned char>(state[4 * i] ^ xState(state[1 + 4 * i], 0x02)
-                ^ xState(state[2 + 4 * i], 0x03) ^ state[3 + 4 * i]);
-            newState[2 + 4 * i] = static_cast<unsigned char>(state[4 * i] ^ state[1 + 4 * i]
-                ^ xState(state[2 + 4 * i], 0x02) ^ xState(state[3 + 4 * i], 0x03));
-            newState[3 + 4 * i] = static_cast<unsigned char>(xState(state[4 * i], 0x03) ^ state[1 + 4 * i]
-                ^ state[2 + 4 * i] ^ xState(state[3 + 4 * i], 0x02));
+            state[4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x02)
+                ^ xState(temp[1 + 4 * i], 0x03) ^ temp[2 + 4 * i] ^ temp[3 + 4 * i]);
+            state[1 + 4 * i] = static_cast<unsigned char>(temp[4 * i] ^ xState(temp[1 + 4 * i], 0x02)
+                ^ xState(temp[2 + 4 * i], 0x03) ^ temp[3 + 4 * i]);
+            state[2 + 4 * i] = static_cast<unsigned char>(temp[4 * i] ^ temp[1 + 4 * i]
+                ^ xState(temp[2 + 4 * i], 0x02) ^ xState(temp[3 + 4 * i], 0x03));
+            state[3 + 4 * i] = static_cast<unsigned char>(xState(temp[4 * i], 0x03) ^ temp[1 + 4 * i]
+                ^ temp[2 + 4 * i] ^ xState(temp[3 + 4 * i], 0x02));
         }
-        return newState;
+        delete[] temp;
     }
 
-    unsigned char* AddRoundKey(const unsigned char* state, const unsigned char* roundKey) {
-        auto* newState = new unsigned char[16];
+    void AddRoundKey(unsigned char* state, const unsigned char* roundKey) {
         for (int i = 0; i < 16; i++) {
-            newState[i] = static_cast<unsigned char>(state[i] ^ roundKey[i]);
+            state[i] ^= roundKey[i];
         }
-        return newState;
     }
 
-    void KeyExpansion(const unsigned char* key, unsigned char* roundKeys) {
+    unsigned char* XorWords(const unsigned char a[], const unsigned char b[]) {
+        const auto result = new unsigned char[4];
+        for (int i = 0; i < 4; i++) {
+            result[i] = static_cast<unsigned char>(a[i] ^ b[i]);
+        }
+        return result;
+    }
+
+    std::vector<unsigned char*> KeyExpansion(const unsigned char* key) {
         int i = 0;
-        while (i < Nk * 4) {
-            roundKeys[i] = key[i];
+        auto roundKeys = std::vector(4 * (Nr + 1), new unsigned char[4]);
+        while (i <= Nk - 1) {
+            for (int j = 0; j < 4; j++) {
+                roundKeys[i][j] = key[4 * i + j];
+            }
             i++;
         }
-        while (i <= 4 * (Nr + 3)) {
-            unsigned char* temp = &roundKeys[i - 1];
+        while (i <= 4 * Nr + 3) {
+            auto* temp = new unsigned char[4];
+            memcpy(temp, roundKeys[i - 1], 4);
             if (i % Nk == 0) {
-                temp = SubWord(RotWord(temp));
+                RotWord(temp);
+                SubWord(temp);
                 temp[0] ^= Rcon[i / Nk];
             }
             else if (Nk > 6 && i % Nk == 4) {
-                temp = SubWord(temp);
+                SubWord(temp);
             }
-            roundKeys[i] = roundKeys[i - Nk] ^ *temp;
+            roundKeys[i] = XorWords(roundKeys[i - Nk], temp);
             i++;
+            delete[] temp;
         }
+        auto expandedKeys = std::vector<unsigned char*>(Nr + 1);
+
+        for (int j = 0; j < Nr + 1; j++) {
+            expandedKeys[j] = new unsigned char[16];
+            for (int k = 0; k < 4; k++) {
+                for (int l = 0; l < 4; l++) {
+                    expandedKeys[j][4 * k + l] = roundKeys[j * 4 + k][l];
+                }
+            }
+        }
+        return expandedKeys;
     }
 
 public:
-    explicit AES(const int keySize) {
+    explicit AES(const int keySize) : keySize(keySize) {
         switch (keySize) {
         case 16:
             Nk = 4;
@@ -255,7 +289,19 @@ public:
         }
     }
 
-    unsigned char* Encrypt(const unsigned char* input, const unsigned char* key) {
-        // WIP
+    unsigned char* Encrypt(const unsigned char input[], const unsigned char key[]) {
+        const auto state = new unsigned char[16];
+        const auto roundKeys = KeyExpansion(key);
+        AddRoundKey(state, roundKeys[0]);
+        for (int round = 1; round < Nr; round++) {
+            SubBytes(state);
+            ShiftRows(state);
+            MixColumns(state);
+            AddRoundKey(state, roundKeys[round]);
+        }
+        SubBytes(state);
+        ShiftRows(state);
+        AddRoundKey(state, roundKeys[Nr]);
+        return state;
     }
 };
