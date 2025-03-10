@@ -293,11 +293,13 @@ protected:
     }
 
     unsigned char* AddPadding(const unsigned char* input, const int inputSize) {
+        std::mt19937 gen(0);
         const int paddingSize = 16 - inputSize % 16;
         const auto temp = new unsigned char[inputSize + paddingSize];
         memcpy(temp, input, inputSize);
         for (int i = 0; i < paddingSize; i++) {
-            temp[inputSize + i] = static_cast<unsigned char>(paddingSize);
+            gen.seed(std::random_device{}());
+            temp[inputSize + i] = static_cast<unsigned char>(gen() % 256);
         }
         return temp;
     }

@@ -5,8 +5,9 @@
 
 int main() {
     // Init input, iv and key
-    constexpr int inputSize = 60;
+    constexpr int inputSize = 64;
     constexpr int keySize = 32;
+    constexpr int paddingSize = 16 - inputSize % 16;
 
     // Init AES modes
     AES_ECB ecb(keySize);
@@ -21,7 +22,7 @@ int main() {
         0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
         0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
         0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-        0xAD, 0x2B, 0x41, 0x7B
+        0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10
     };
 
     // const unsigned char iv[16] = {
@@ -59,7 +60,7 @@ int main() {
     std::cout << "ECB:" << std::endl;
     // ECB start
     const unsigned char* cipher_ecb = ecb.Encrypt(input, key, inputSize);
-    for (int i = 0; i < inputSize; i++) {
+    for (int i = 0; i < inputSize + paddingSize; i++) {
         std::cout << std::hex << static_cast<int>(cipher_ecb[i]) << " ";
     }
     std::cout << std::endl << std::endl;
@@ -73,7 +74,7 @@ int main() {
     std::cout << "CBC:" << std::endl;
     // CBC start
     const unsigned char* cipher_cbc = cbc.Encrypt(input, key, iv, inputSize);
-    for (int i = 0; i < inputSize; i++) {
+    for (int i = 0; i < inputSize + paddingSize; i++) {
         std::cout << std::hex << static_cast<int>(cipher_cbc[i]) << " ";
     }
     std::cout << std::endl << std::endl;
@@ -87,7 +88,7 @@ int main() {
     std::cout << "CFB:" << std::endl;
     // CFB start
     const unsigned char* cipher_cfb = cfb.Encrypt(input, key, iv, inputSize);
-    for (int i = 0; i < inputSize; i++) {
+    for (int i = 0; i < inputSize + paddingSize; i++) {
         std::cout << std::hex << static_cast<int>(cipher_cfb[i]) << " ";
     }
     std::cout << std::endl << std::endl;
