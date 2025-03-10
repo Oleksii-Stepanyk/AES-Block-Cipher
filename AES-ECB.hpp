@@ -6,13 +6,16 @@
 
 class AES_ECB final : public AES {
 public:
-    explicit AES_ECB(const int keySize): AES(keySize) {}
+    explicit AES_ECB(const int keySize): AES(keySize) {
+    }
 
     ~AES_ECB() override = default;
 
     const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const int inputSize) {
-        const auto result = new unsigned char[inputSize];
-        const int blocks = inputSize / 16;
+        AddPadding(input, inputSize);
+        const int paddingSize = 16 - inputSize % 16;
+        const auto result = new unsigned char[inputSize + paddingSize];
+        const int blocks = (inputSize + paddingSize) / 16;
         for (int i = 0; i < blocks; i++) {
             const unsigned char* block = EncryptBlock(input + i * 16, key);
             memcpy(result + i * 16, block, 16);
@@ -22,13 +25,15 @@ public:
     }
 
     const unsigned char* Decrypt(const unsigned char* input, const unsigned char* key, const int inputSize) {
-        const auto result = new unsigned char[inputSize];
-        const int blocks = inputSize / 16;
+        const int paddingSize = 16 - inputSize % 16;
+        const auto result = new unsigned char[inputSize + paddingSize];
+        const int blocks = (inputSize + paddingSize) / 16;
         for (int i = 0; i < blocks; i++) {
             const unsigned char* block = DecryptBlock(input + i * 16, key);
             memcpy(result + i * 16, block, 16);
             delete[] block;
         }
+        RemovePadding(result, inputSize);
         return result;
     }
 };
