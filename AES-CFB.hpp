@@ -12,8 +12,8 @@ public:
     ~AES_CFB() override = default;
 
     const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv, const int inputSize) {
-        AddPadding(input, inputSize);
         const int paddingSize = 16 - inputSize % 16;
+        const auto temp = AddPadding(input, inputSize);
         const auto result = new unsigned char[inputSize + paddingSize];
         const auto xorData = new unsigned char[16];
         const int blocks = (inputSize + paddingSize) / 16;
@@ -21,12 +21,13 @@ public:
         memcpy(xorData, iv, 16);
         for (int i = 0; i < blocks; i++) {
             const unsigned char* block = EncryptBlock(xorData, key);
-            const unsigned char* xoredBlock = XorBlocks(input + i * 16, block);
+            const unsigned char* xoredBlock = XorBlocks(temp + i * 16, block);
             memcpy(result + i * 16, xoredBlock, 16);
             memcpy(xorData, xoredBlock, 16);
             delete[] xoredBlock;
             delete[] block;
         }
+        delete[] temp;
         return result;
     }
 
@@ -45,7 +46,9 @@ public:
             delete[] xoredBlock;
             delete[] block;
         }
-        RemovePadding(result, inputSize);
+        const auto temp = RemovePadding(result, inputSize);
+        memcpy(result, temp, inputSize);
+        delete[] temp;
         return result;
     }
 };

@@ -12,21 +12,22 @@ public:
     ~AES_CBC() override = default;
 
     const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const unsigned char* iv, const int inputSize) {
-        AddPadding(input, inputSize);
         const int paddingSize = 16 - inputSize % 16;
+        const auto temp = AddPadding(input, inputSize);
         const auto result = new unsigned char[inputSize + paddingSize];
         auto* xorData = new unsigned char[16];
         const int blocks = (inputSize + paddingSize) / 16;
 
         memcpy(xorData, iv, 16);
         for (int i = 0; i < blocks; ++i) {
-            const unsigned char* xoredBlock = XorBlocks(input + i * 16, xorData);
+            const unsigned char* xoredBlock = XorBlocks(temp + i * 16, xorData);
             const unsigned char* encryptedBlock = EncryptBlock(xoredBlock, key);
             memcpy(xorData, encryptedBlock, 16);
             memcpy(result + i * 16, encryptedBlock, 16);
             delete[] xoredBlock;
             delete[] encryptedBlock;
         }
+        delete[] temp;
         return result;
     }
 
@@ -45,7 +46,9 @@ public:
             delete[] decryptedBlock;
             delete[] xoredBlock;
         }
-        RemovePadding(result, inputSize);
+        const auto temp = RemovePadding(result, inputSize);
+        memcpy(result, temp, inputSize);
+        delete[] temp;
         return result;
     }
 };

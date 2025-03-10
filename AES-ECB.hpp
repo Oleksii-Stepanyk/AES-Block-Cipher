@@ -12,15 +12,16 @@ public:
     ~AES_ECB() override = default;
 
     const unsigned char* Encrypt(const unsigned char* input, const unsigned char* key, const int inputSize) {
-        AddPadding(input, inputSize);
         const int paddingSize = 16 - inputSize % 16;
+        const auto temp = AddPadding(input, inputSize);
         const auto result = new unsigned char[inputSize + paddingSize];
         const int blocks = (inputSize + paddingSize) / 16;
         for (int i = 0; i < blocks; i++) {
-            const unsigned char* block = EncryptBlock(input + i * 16, key);
+            const unsigned char* block = EncryptBlock(temp + i * 16, key);
             memcpy(result + i * 16, block, 16);
             delete[] block;
         }
+        delete[] temp;
         return result;
     }
 
@@ -33,7 +34,9 @@ public:
             memcpy(result + i * 16, block, 16);
             delete[] block;
         }
-        RemovePadding(result, inputSize);
+        const auto temp = RemovePadding(result, inputSize);
+        memcpy(result, temp, inputSize);
+        delete[] temp;
         return result;
     }
 };
